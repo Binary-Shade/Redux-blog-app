@@ -9,6 +9,11 @@ export const fetchPosts = createAsyncThunk('/posts/fetchPosts', async()=>{
     return response.data
 })
 
+export const addPost = createAsyncThunk('/posts/addPost', async (initPost)=>{
+    const response = await axios.post(URL, initPost)
+    return response.data
+})
+
 const initState = {
     posts: [],
     status: 'idle',
@@ -42,7 +47,18 @@ const postSlice = createSlice({
                 exist.liked = !exist.liked
                 exist.likes += exist.liked ? 1 : -1
             }
+        },
+        updatePost(state, action) {
+            const index = state.posts.findIndex(post => post.id === action.payload.id);
+            if(index !== -1){
+                state.posts[index] = {...state.posts[index], ...action.payload}
+            }
+        },
+        deletePost(state, action){
+            console.log(action);
+            state.posts = state.posts.filter(post => post.id !== action.payload)
         }
+        
     },
     extraReducers(builder){
         builder.addCase(fetchPosts.fulfilled, (state, action)=>{
@@ -62,11 +78,20 @@ const postSlice = createSlice({
         }).addCase(fetchPosts.rejected, (state, action)=>{
             state.status = 'failed'
             state.error = action.payload.message
+        }).addCase(addPost.fulfilled, (state, action)=>{
+            action.payload.id = nanoid()
+            action.payload.userId = Number(action.payload.userId)
+            action.payload.date = new Date().toISOString()
+            action.payload.likes = 0
+            action.payload.liked = false
+            console.log(action.payload);
+            state.posts.push(action.payload)
         })
     }
 })
 export const AllSelect = (state) => (state.posts.posts)
 export const getPostStatus = (state) => (state.posts.status)
 export const getPostError = (state) => (state.posts.error)
-export const {postAdd, AddReaction} = postSlice.actions
+export const getPostById = (state, postId) => state.posts.posts.find(post => post.id === postId);
+export const {postAdd, AddReaction, updatePost, deletePost} = postSlice.actions
 export default postSlice.reducer

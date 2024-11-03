@@ -11,7 +11,7 @@ const Home = () => {
             <PostsList />
         </div>
         {
-            modalOpen && <AddPost setModalOpen={setModalOpen}/>
+            modalOpen && <AddPost heading={'add post'} setModalOpen={setModalOpen}/>
         }
     </>
   )

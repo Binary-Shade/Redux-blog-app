@@ -1,26 +1,36 @@
 import React, { useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { postAdd } from '../../slices/postSlice'
+import { addPost, postAdd } from '../../slices/postSlice'
 import { AllUsers } from '../../slices/userSlice'
+import { unwrapResult } from '@reduxjs/toolkit'
 
 
-const AddPost = ({setModalOpen}) => {
+const AddPost = ({setModalOpen, heading}) => {
     const [title, setTitle] = useState('')
     const [content, setContent] = useState('')
     const [userId, setUserId] = useState('')
+    const [saveState, setSaveState] = useState('idle')
     const users = useSelector(AllUsers)
     const dispatch = useDispatch()
-    const disable = Boolean(title) && Boolean(content) && Boolean(userId)
+    const canSave = [title, content, userId].every(Boolean) && saveState === 'idle'
     const SavePost = (e) =>{
         e.preventDefault()
-        if(title && content){
-            dispatch(postAdd(title, content, userId))
+        if(canSave){
+            try {
+                setSaveState('pending')
+                dispatch(addPost({title, body: content, userId}))
+                unwrapResult()
+            } catch (error) {
+                console.log('post failed to save',error);
+            } finally {
+                setSaveState('idle')
+                setModalOpen(false)
+            }
         }
-        setModalOpen(false)
     }
   return (
     <div className='w-96 fixed top-[20%] right-[40%] h-max capitalize text-white p-10 rounded bg-slate-900'>
-        <h1 className='font-semibold text-xl'>add post</h1>
+        <h1 className='font-semibold text-xl'>{heading}</h1>
         <form className='flex flex-col gap-5'>
             <label htmlFor="title">Enter post title</label>
             <input type="text" 
@@ -47,7 +57,7 @@ const AddPost = ({setModalOpen}) => {
                     ))
                 }
             </select>
-            <button type="button" onClick={SavePost} disabled={!disable} className='p-2 bg-green-600 font-bold rounded-sm'>Add new post</button>
+            <button type="button" onClick={SavePost} disabled={!canSave} className='p-2 bg-green-600 font-bold rounded-sm'>Add new post</button>
         </form>
     </div>
   )
