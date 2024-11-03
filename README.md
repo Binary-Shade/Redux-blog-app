@@ -15,4 +15,5 @@ concepts like asynchronous state management, state updates with Redux, and an in
     Redux Toolkit: Simplified state management with createSlice and createAsyncThunk.
     CSS: Basic styling for a clean, minimalistic look.
 
-![image](https://github.com/user-attachments/assets/29fa9284-84d1-404d-8cae-9f634445a078)
+![image](https://github.com/user-attachments/assets/29fa9284-84d1-404d-8cae-9f634445a078) ![image](https://github.com/user-attachments/assets/eef4f724-23c7-4071-993a-878763f69148)
+
