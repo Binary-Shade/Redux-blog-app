@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { addPost, postAdd } from '../../slices/postSlice'
+import { addPost } from '../../slices/postSlice'
 import { AllUsers } from '../../slices/userSlice'
 import { unwrapResult } from '@reduxjs/toolkit'
 

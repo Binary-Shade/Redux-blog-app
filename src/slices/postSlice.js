@@ -1,97 +1,133 @@
-import { createAsyncThunk, createSlice, nanoid } from "@reduxjs/toolkit";
+import { createAsyncThunk, createEntityAdapter, createSlice, nanoid } from "@reduxjs/toolkit";
 import axios from "axios";
 import { sub } from "date-fns";
 
-const URL = 'https://jsonplaceholder.typicode.com/posts'
+const URL = 'https://jsonplaceholder.typicode.com/posts/';
 
-export const fetchPosts = createAsyncThunk('/posts/fetchPosts', async()=>{
-    const response = await axios.get(URL)
-    return response.data
-})
+// Async thunks
+export const fetchPosts = createAsyncThunk('posts/fetchPosts', async () => {
+    try {
+        console.log('triggers');
+        const response = await axios.get(URL);
+        return response.data;
+    } catch (error) {
+        console.error(error);
+        throw error;  // Throw error for `rejected` to catch
+    }
+});
 
-export const addPost = createAsyncThunk('/posts/addPost', async (initPost)=>{
-    const response = await axios.post(URL, initPost)
-    return response.data
-})
+export const addPost = createAsyncThunk('posts/addPost', async (initPost) => {
+    try {
+        const response = await axios.post(URL, initPost);
+        return response.data;
+    } catch (error) {
+        console.error(error);
+        throw error;
+    }
+});
 
-const initState = {
-    posts: [],
+export const updatePost = createAsyncThunk('posts/updatePost', async (initPost) => {
+    const { id } = initPost;
+
+    try {
+        const response = await axios.put(`${URL}/${id}`, initPost);
+        return response.data;
+    } catch (error) {
+        console.error(error);
+        throw error;
+    }
+});
+
+export const deletePost = createAsyncThunk('posts/deletePost', async (postId) => {
+    const post_url = `${URL}${postId}`
+    try {
+        const response = await axios.delete(post_url);
+        console.log(response);
+        return postId
+    } catch (error) {
+        console.error(error);
+        throw error;
+    }
+});
+
+// Entity adapter
+const postAdapter = createEntityAdapter({
+    sortComparer: (a, b) => b.date.localeCompare(a.date)  // Fix typo
+});
+
+// Initial state
+const initState = postAdapter.getInitialState({
     status: 'idle',
     error: null
-}
+});
+
+// Slice
 const postSlice = createSlice({
     name: 'posts',
     initialState: initState,
     reducers: {
-        postAdd :{
-            reducer: (state, action)=>{
-                state.posts.push(action.payload)
-            },
-            prepare(title, content, userId){
-                return{
-                    payload: {
-                        id: nanoid(),
-                        title,
-                        body: content,
-                        date: new Date().toISOString(),
-                        userId,
-                        likes:0,
-                        liked:false
-                    }
-                }
-            }
-        },AddReaction(state,action){
-            const {postId} = action.payload
-            const exist = state.posts.find(post => post.id == postId)
-            if(exist){
-                exist.liked = !exist.liked
-                exist.likes += exist.liked ? 1 : -1
+        addReaction(state, action) {
+            const { postId } = action.payload;
+            const existingPost = state.entities[postId];
+            if (existingPost) {
+                existingPost.liked = !existingPost.liked;
+                existingPost.likes += existingPost.liked ? 1 : -1;
             }
         },
-        updatePost(state, action) {
-            const index = state.posts.findIndex(post => post.id === action.payload.id);
-            if(index !== -1){
-                state.posts[index] = {...state.posts[index], ...action.payload}
-            }
-        },
-        deletePost(state, action){
-            console.log(action);
-            state.posts = state.posts.filter(post => post.id !== action.payload)
-        }
-        
     },
-    extraReducers(builder){
-        builder.addCase(fetchPosts.fulfilled, (state, action)=>{
-            state.status = 'succeded'
-            let min =1
-            const loadedPosts = action.payload.map(post => {
-                post.id = nanoid(),
-                post.date = sub(new Date(), {minutes: min++}).toISOString(),
-                post.likes = 0,
-                post.liked = false
-                return post
-            }
-        )
-        state.posts = state.posts.concat(loadedPosts)
-        }).addCase(fetchPosts.pending, (state, action)=>{
-            state.status = 'loading'
-        }).addCase(fetchPosts.rejected, (state, action)=>{
-            state.status = 'failed'
-            state.error = action.payload.message
-        }).addCase(addPost.fulfilled, (state, action)=>{
-            action.payload.id = nanoid()
-            action.payload.userId = Number(action.payload.userId)
-            action.payload.date = new Date().toISOString()
-            action.payload.likes = 0
-            action.payload.liked = false
-            console.log(action.payload);
-            state.posts.push(action.payload)
-        })
+    extraReducers: (builder) => {
+        builder
+            .addCase(fetchPosts.pending, (state) => {
+                state.status = 'loading';
+            })
+            .addCase(fetchPosts.fulfilled, (state, action) => {
+                state.status = 'succeeded';
+                let min = 1;
+                const loadedPosts = action.payload.map(post => ({
+                    ...post,
+                    id : post.id,
+                    date: sub(new Date(), { minutes: min++ }).toISOString(),
+                    likes: 0,
+                    liked: false
+                }));
+                console.log(loadedPosts);
+                postAdapter.upsertMany(state, loadedPosts);
+            })
+            .addCase(fetchPosts.rejected, (state, action) => {
+                state.status = 'failed';
+                state.error = action.error.message;
+            })
+            .addCase(addPost.fulfilled, (state, action) => {
+                const allPosts = postAdapter.getSelectors().selectAll(state)
+                const newId = allPosts.length > 0 ? Math.max(...allPosts.map(post => post.id))+1 : 1
+                action.payload.id = newId
+                action.payload.userId = Number(action.payload.userId);
+                action.payload.date = new Date().toISOString();
+                action.payload.likes = 0;
+                action.payload.liked = false;
+                console.log(action.payload);
+                postAdapter.addOne(state, action.payload);
+            })
+            .addCase(updatePost.fulfilled, (state, action) => {
+                action.payload.date = new Date().toISOString();
+                postAdapter.upsertOne(state, action.payload);
+            })
+            .addCase(deletePost.fulfilled, (state, action) => {
+                const postId = action.payload;
+                postAdapter.removeOne(state, postId);
+            });
     }
-})
-export const AllSelect = (state) => (state.posts.posts)
-export const getPostStatus = (state) => (state.posts.status)
-export const getPostError = (state) => (state.posts.error)
-export const getPostById = (state, postId) => state.posts.posts.find(post => post.id === postId);
-export const {postAdd, AddReaction, updatePost, deletePost} = postSlice.actions
-export default postSlice.reducer
+});
+
+// Export selectors and reducer
+export const {
+    selectAll: selectAllPosts,
+    selectById: getPostById,
+    selectIds: selectPostIds
+} = postAdapter.getSelectors(state => state.posts);
+
+export const getPostStatus = (state) => state.posts.status;
+export const getPostError = (state) => state.posts.error;
+
+export const { addReaction } = postSlice.actions;
+export default postSlice.reducer;

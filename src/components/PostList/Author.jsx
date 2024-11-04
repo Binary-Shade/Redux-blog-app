@@ -1,18 +1,11 @@
 import React, { useEffect } from 'react'
-import { AllUsers, fetchUsers, getUserError, getUserStatus } from '../../slices/userSlice'
-import { useDispatch, useSelector } from 'react-redux'
+import { AllUsers, getUserError } from '../../slices/userSlice'
+import { useSelector } from 'react-redux'
 
 const Author = ({userId}) => {
     const users = useSelector(AllUsers)
-    const userStatus = useSelector(getUserStatus)
     const userError = useSelector(getUserError)
-    
-    const dispatch = useDispatch()
-    useEffect(()=>{
-      if(userStatus === 'idle'){
-        dispatch(fetchUsers())
-      }
-    },[userStatus, dispatch])
+        
     const author = users.find(user=>{
         return user.id == userId
     })

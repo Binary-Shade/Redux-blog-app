@@ -2,12 +2,12 @@ import React from 'react'
 import { FaRegHeart } from "react-icons/fa6";
 import { FaHeart } from "react-icons/fa";
 import { useDispatch } from 'react-redux';
-import { AddReaction } from '../../slices/postSlice';
+import { addReaction } from '../../slices/postSlice';
 
 const Reactions = ({post}) => {
     const dispatch = useDispatch()
     const handleClick = ()=>{
-        dispatch(AddReaction({postId : post.id}))
+        dispatch(addReaction({postId : post.id}))
     }
   return (
     <div>

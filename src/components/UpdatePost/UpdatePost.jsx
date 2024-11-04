@@ -4,7 +4,7 @@ import { Navigate, useNavigate, useParams } from 'react-router-dom';
 import { getPostById, updatePost } from '../../slices/postSlice';
 import { AllUsers } from '../../slices/userSlice';
 
-const UpdatePost = ({ setModalOpen }) => {
+const UpdatePost = () => {
     const { id } = useParams();
     const dispatch = useDispatch();
     const navigate = useNavigate()
@@ -28,6 +28,7 @@ const UpdatePost = ({ setModalOpen }) => {
     const update = (e) => {
         e.preventDefault();
         dispatch(updatePost({id, title,body:content, userId, date: new Date().toISOString()}))
+        console.log('working');
         navigate('/')
     };
 
